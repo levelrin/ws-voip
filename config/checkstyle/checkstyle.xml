@@ -1,0 +1,370 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC "-//Puppy Crawl//DTD Check Configuration 1.2//EN" "http://www.puppycrawl.com/dtds/configuration_1_2.dtd">
+<module name="Checker">
+    <!--
+    Enforces English locale to be independent from the
+    default locale which may vary between environments.
+    -->
+    <property name="localeLanguage" value="en"/>
+
+    <!--
+    Checks that each Java package has a Javadoc file
+    used for commenting.
+    -->
+    <module name="JavadocPackage"/>
+
+    <!--
+    Checks whether files end with a new line.
+    -->
+    <module name="NewlineAtEndOfFile">
+        <property name="fileExtensions" value="java"/>
+        <property name="lineSeparator" value="lf"/>
+    </module>
+
+    <!--
+    Checks that property files contain the same keys.
+    -->
+    <module name="Translation"/>
+
+    <!--
+    Maximum number of lines in any .java file is limited.
+    -->
+    <module name="FileLength">
+        <property name="max" value="1000"/>
+        <property name="fileExtensions" value="java"/>
+    </module>
+
+    <!--
+    TAB chars are not allowed anywhere.
+    -->
+    <module name="FileTabCharacter">
+        <property name="eachLine" value="true"/>
+        <property name="fileExtensions" value="java,txt,xml,xsl,xsd,properties,groovy,vm,MF,sh,sql,tokens,g,spec,css,csv"/>
+    </module>
+
+    <!--
+    Trailing spaces are not allowed anywhere.
+    -->
+    <module name="RegexpSingleline">
+        <property name="format" value="\s+$"/>
+        <property name="message" value="Line has trailing spaces."/>
+    </module>
+
+    <!--
+    C++ style inline comment is not allowed.
+    -->
+    <module name="RegexpSingleline">
+        <property name="format" value="/\*.*\*/"/>
+        <property name="message" value="This kind of comment is not allowed."/>
+    </module>
+
+    <!--
+    Windows line endings are not allowed.
+    -->
+    <module name="RegexpMultiline">
+        <property name="format" value="\r\n$"/>
+        <property name="message" value="Lines in file should end with Unix-like end of line"/>
+    </module>
+
+    <!--
+    Two consecutive empty lines are not allowed.
+    -->
+    <module name="RegexpMultiline">
+        <property name="format" value="\r?\n[ \t\x0B\f]*\r?\n[ \t\x0B\f]*\r?\n"/>
+        <property name="fileExtensions" value="java"/>
+        <property name="message" value="Two consecutive empty lines"/>
+    </module>
+
+    <!--
+    JavaDoc regexp checks
+    -->
+    <module name="RegexpSingleline">
+        <property name="format" value="\* +@return +[^A-Z]"/>
+        <property name="fileExtensions" value="java"/>
+        <property name="message" value="@return tag description should start with capital letter"/>
+    </module>
+    <module name="RegexpSingleline">
+        <property name="format" value="\* +@param +\w+ +[^A-Z]"/>
+        <property name="fileExtensions" value="java"/>
+        <property name="message" value="@param tag description should start with capital letter"/>
+    </module>
+    <module name="RegexpSingleline">
+        <property name="format" value="/\*\* +[^A-Z\{]"/>
+        <property name="fileExtensions" value="java"/>
+        <property name="message" value="First sentence in a comment should start with a capital letter"/>
+    </module>
+    <module name="RegexpMultiline">
+        <property name="format" value="/\*\*\W+\* +[^A-Z\{]"/>
+        <property name="fileExtensions" value="java"/>
+        <property name="message" value="First sentence in a comment should start with a capital letter"/>
+    </module>
+    <module name="RegexpSingleline">
+        <property name="format" value="^(?! *(/\*\*|\*|/\*|//)).*[\.\-\+%/\*&lt;&gt;](?&lt;!(-&gt;)|&lt;*[A-Za-z]&gt;) *$"/>
+        <property name="fileExtensions" value="java"/>
+        <property name="message" value="Line cannot end with this symbol, move it to the next line"/>
+    </module>
+    <module name="RegexpSingleline">
+        <property name="format" value="^ *="/>
+        <property name="fileExtensions" value="java"/>
+        <property name="message" value="Line cannot start with this symbol, move it to the previous line"/>
+    </module>
+
+    <!--
+    Multithreading checks
+    -->
+    <module name="RegexpSingleline">
+        <property name="format" value="synchronized +\(this\) +\{"/>
+        <property name="fileExtensions" value="java"/>
+        <property name="message" value="Using THIS as a lock is a bad practice (use class variable instead)"/>
+    </module>
+    <module name="RegexpSingleline">
+        <property name="format" value="synchronized +\([\w\.]\.class\) +\{"/>
+        <property name="fileExtensions" value="java"/>
+        <property name="message" value="Using class as a lock is a bad practice (use class variable instead)"/>
+    </module>
+
+    <!--
+    Charset checks
+    -->
+    <module name="RegexpSingleline">
+        <property name="format" value="org\.apache\.commons\.(codec|lang3?)\.CharEncoding"/>
+        <property name="fileExtensions" value="java"/>
+        <property name="message" value="Use 'java.nio.charset.StandardCharsets' instead"/>
+    </module>
+    <module name="RegexpSingleline">
+        <property name="format" value="com\.google\.common\.base\.Charsets"/>
+        <property name="fileExtensions" value="java"/>
+        <property name="message" value="Use 'java.nio.charset.StandardCharsets' instead"/>
+    </module>
+
+    <!-- Check header -->
+    <module name="RegexpHeader">
+        <property name="headerFile" value="${checkstyle.header.file}"/>
+        <property name="fileExtensions" value="java"/>
+    </module>
+
+    <!--
+    Enable Suppression
+    It requires SuppressWarningsHolder module.
+    -->
+    <module name="SuppressWarningsFilter"/>
+
+    <!--
+    Prevent line being too long
+    Ignored:
+    import, method declaration, SpotBugs suppression, and javadoc.
+    -->
+    <module name="LineLength">
+        <property name="max" value="100"/>
+        <property name="ignorePattern" value="^import .*$|\s+public|\s+private|^\s*@SuppressFBWarnings.*|^\s\*.*"/>
+    </module>
+
+    <!-- Check the order of properties -->
+    <module name="OrderedProperties"/>
+
+    <!-- Make sure properties are unique -->
+    <module name="UniqueProperties"/>
+
+    <!-- TreeWalker -->
+    <module name="TreeWalker">
+        <!-- Checks for annotations. -->
+        <module name="AnnotationLocation"/>
+        <module name="AnnotationUseStyle">
+            <property name="elementStyle" value="compact_no_array"/>
+            <property name="trailingArrayComma" value="never"/>
+            <property name="closingParens" value="ignore"/>
+        </module>
+        <module name="MissingDeprecated"/>
+        <module name="MissingOverride"/>
+        <module name="PackageAnnotation"/>
+        <module name="SuppressWarnings"/>
+        <module name="SuppressWarningsHolder"/>
+
+        <!-- Checks for blocks. -->
+        <module name="AvoidNestedBlocks"/>
+        <module name="EmptyBlock"/>
+        <module name="EmptyCatchBlock"/>
+        <module name="LeftCurly"/>
+        <module name="NeedBraces"/>
+        <module name="RightCurly"/>
+
+        <!-- Checks for class design. -->
+        <module name="DesignForExtension"/>
+        <module name="FinalClass"/>
+        <module name="HideUtilityClassConstructor"/>
+        <module name="InnerTypeLast"/>
+        <module name="InterfaceIsType"/>
+        <module name="MutableException"/>
+        <module name="OneTopLevelClass"/>
+        <module name="ThrowsCount"/>
+        <module name="VisibilityModifier"/>
+
+        <!-- Checks for common coding problems -->
+        <module name="ArrayTrailingComma"/>
+        <module name="AvoidInlineConditionals"/>
+        <module name="CovariantEquals"/>
+        <module name="DeclarationOrder"/>
+        <module name="DefaultComesLast"/>
+        <module name="EmptyStatement"/>
+        <module name="EqualsAvoidNull"/>
+        <module name="EqualsHashCode"/>
+        <module name="ExplicitInitialization"/>
+        <module name="FallThrough"/>
+        <module name="FinalLocalVariable"/>
+        <module name="HiddenField">
+            <property name="ignoreConstructorParameter" value="true"/>
+        </module>
+        <module name="IllegalCatch"/>
+        <module name="IllegalInstantiation"/>
+        <module name="IllegalThrows"/>
+        <module name="IllegalToken">
+            <property name="tokens" value="POST_INC, POST_DEC"/>
+        </module>
+        <module name="IllegalTokenText"/>
+        <module name="IllegalType"/>
+        <module name="InnerAssignment"/>
+        <module name="MagicNumber"/>
+        <module name="MissingSwitchDefault"/>
+        <module name="ModifiedControlVariable"/>
+        <module name="MultipleVariableDeclarations"/>
+        <module name="NestedForDepth"/>
+        <module name="NestedIfDepth"/>
+        <module name="NestedTryDepth"/>
+        <module name="NoClone"/>
+        <module name="NoFinalizer"/>
+        <module name="OneStatementPerLine"/>
+        <module name="OverloadMethodsDeclarationOrder"/>
+        <module name="PackageDeclaration"/>
+        <module name="ParameterAssignment"/>
+        <module name="RequireThis">
+            <property name="checkFields" value="true"/>
+            <property name="checkMethods" value="true"/>
+            <property name="validateOnlyOverlapping" value="false"/>
+        </module>
+        <module name="ReturnCount">
+            <property name="max" value="1"/>
+        </module>
+        <module name="SimplifyBooleanExpression"/>
+        <module name="SimplifyBooleanReturn"/>
+        <module name="StringLiteralEquality"/>
+        <module name="SuperClone"/>
+        <module name="SuperFinalize"/>
+        <module name="UnnecessaryParentheses"/>
+        <module name="UnnecessarySemicolonAfterTypeMemberDeclaration"/>
+        <module name="UnnecessarySemicolonInEnumeration"/>
+        <module name="UnnecessarySemicolonInTryWithResources"/>
+        <module name="VariableDeclarationUsageDistance"/>
+
+        <!-- Checks for imports. -->
+        <module name="AvoidStarImport"/>
+        <module name="AvoidStaticImport"/>
+        <module name="IllegalImport"/>
+        <module name="RedundantImport"/>
+        <module name="UnusedImports"/>
+
+        <!-- Checks for Javadoc comments. -->
+        <module name="AtclauseOrder">
+            <property name="tagOrder" value="@param, @return, @throws, @exception, @see, @since, @serial, @serialField, @serialData, @deprecated, @todo, @checkstyle"/>
+        </module>
+        <module name="InvalidJavadocPosition"/>
+        <module name="JavadocBlockTagLocation"/>
+        <module name="JavadocMethod"/>
+        <module name="JavadocStyle"/>
+        <module name="JavadocType">
+            <property name="allowUnknownTags" value="true"/>
+        </module>
+        <module name="JavadocVariable"/>
+        <module name="MissingJavadocMethod"/>
+        <module name="MissingJavadocPackage"/>
+        <module name="MissingJavadocType"/>
+        <module name="NonEmptyAtclauseDescription"/>
+
+        <!-- Metrics. -->
+        <module name="BooleanExpressionComplexity"/>
+        <module name="ClassDataAbstractionCoupling"/>
+        <module name="ClassFanOutComplexity"/>
+        <module name="CyclomaticComplexity"/>
+        <module name="JavaNCSS"/>
+        <module name="NPathComplexity"/>
+
+        <!-- Miscellaneous other checks. -->
+        <module name="ArrayTypeStyle"/>
+        <module name="CommentsIndentation"/>
+        <module name="FinalParameters">
+            <property name="tokens" value="CTOR_DEF,METHOD_DEF,FOR_EACH_CLAUSE,LITERAL_CATCH"/>
+        </module>
+        <module name="Indentation"/>
+        <module name="OuterTypeFilename"/>
+        <module name="TodoComment"/>
+        <module name="TrailingComment"/>
+        <module name="UpperEll"/>
+
+        <!-- Modifier Checks. -->
+        <module name="ModifierOrder"/>
+        <module name="RedundantModifier"/>
+
+        <!-- Checks for Naming Conventions. -->
+        <module name="AbbreviationAsWordInNameCheck"/>
+        <module name="ClassTypeParameterName"/>
+        <module name="ConstantName"/>
+        <module name="LocalFinalVariableName">
+            <property name="format" value="^[a-z]{2,}[a-zA-Z]{0,10}$"/>
+            <property name="tokens" value="VARIABLE_DEF"/>
+        </module>
+        <module name="LocalVariableName">
+            <property name="format" value="^[a-z]{2,}[a-zA-Z]{0,10}$"/>
+        </module>
+        <module name="CatchParameterName">
+            <property name="format" value="^[a-z]{2,}[a-zA-Z]{0,10}$"/>
+        </module>
+        <module name="MemberName">
+            <property name="format" value="^[a-z]{2,}[a-zA-Z]{0,10}$"/>
+        </module>
+        <module name="MethodName">
+            <property name="format" value="^[a-z]{2,}[a-zA-Z]{0,10}$"/>
+        </module>
+        <module name="MethodTypeParameterName"/>
+        <module name="PackageName"/>
+        <module name="ParameterName">
+            <property name="format" value="^[a-z]{2,}[a-zA-Z]{0,10}$"/>
+        </module>
+        <module name="StaticVariableName"/>
+        <module name="TypeName"/>
+
+        <!-- Checks for Size Violations. -->
+        <module name="AnonInnerLength"/>
+        <module name="ExecutableStatementCount">
+            <property name="max" value="20"/>
+        </module>
+        <module name="MethodCount"/>
+        <module name="MethodLength"/>
+        <module name="OuterTypeNumber"/>
+        <module name="ParameterNumber">
+            <property name="max" value="3"/>
+        </module>
+
+        <!-- Checks for whitespace. -->
+        <module name="EmptyForInitializerPad"/>
+        <module name="EmptyForIteratorPad"/>
+        <module name="EmptyLineSeparator">
+            <property name="allowMultipleEmptyLines" value="false"/>
+            <property name="allowMultipleEmptyLinesInsideClassMembers" value="false"/>
+            <property name="tokens" value="IMPORT,CLASS_DEF,INTERFACE_DEF,ENUM_DEF,STATIC_INIT,INSTANCE_INIT,METHOD_DEF,CTOR_DEF,VARIABLE_DEF"/>
+        </module>
+        <module name="GenericWhitespace"/>
+        <module name="MethodParamPad"/>
+        <module name="NoLineWrap"/>
+        <module name="NoWhitespaceAfter"/>
+        <module name="NoWhitespaceBefore"/>
+        <module name="OperatorWrap"/>
+        <module name="ParenPad"/>
+        <module name="TypecastParenPad"/>
+        <module name="WhitespaceAfter"/>
+        <module name="WhitespaceAround"/>
+    </module>
+
+    <!-- Suppression filter -->
+    <module name="SuppressionFilter">
+        <property name="file" value="${checkstyle.suppression.file}" />
+    </module>
+</module>

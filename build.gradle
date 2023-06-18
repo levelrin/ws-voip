@@ -1,19 +1,145 @@
 plugins {
+    id 'application'
     id 'java'
+    id 'jacoco'
+    id 'com.github.spotbugs' version '5.0.9'
+    id 'pmd'
+    id 'checkstyle'
 }
 
 group = 'com.levelrin'
-version = '1.0-SNAPSHOT'
+version = '0.0.1'
+
+mainClassName = 'com.levelrin.wsvoip.Main'
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
+    implementation 'io.javalin:javalin:5.6.0'
+    implementation 'org.slf4j:slf4j-reload4j:2.0.7'
     testImplementation platform('org.junit:junit-bom:5.9.1')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
 test {
     useJUnitPlatform()
+    dependsOn 'cleanTest'
+    testLogging {
+        events 'skipped', 'failed'
+        exceptionFormat = 'full'
+    }
+}
+
+jacoco {
+    toolVersion = '0.8.7'
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                enabled = true
+                counter = 'INSTRUCTION'
+                value = 'COVEREDRATIO'
+                minimum = 0.00000
+            }
+            limit {
+                enabled = true
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = 0.00000
+            }
+            limit {
+                enabled = true
+                counter = 'COMPLEXITY'
+                value = 'COVEREDRATIO'
+                minimum = 0.00000
+            }
+            limit {
+                enabled = true
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.00000
+            }
+            limit {
+                enabled = true
+                counter = 'METHOD'
+                value = 'COVEREDRATIO'
+                minimum = 0.00000
+            }
+            limit {
+                enabled = true
+                counter = 'CLASS'
+                value = 'COVEREDRATIO'
+                minimum = 0.00000
+            }
+        }
+    }
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification
+check.dependsOn jacocoTestReport
+
+spotbugs {
+    toolVersion = '4.7.1'
+    ignoreFailures = false
+    effort = 'max'
+    excludeFilter = file('config/spotbugs/exclude.xml')
+}
+spotbugsMain {
+    reports {
+        html {
+            required = true
+            outputLocation = file("$buildDir/reports/spotbugs/main/spotbugs.html")
+            stylesheet = 'fancy-hist.xsl'
+        }
+    }
+}
+spotbugsTest {
+    reports {
+        html {
+            required = true
+            outputLocation = file("$buildDir/reports/spotbugs/test/spotbugs.html")
+            stylesheet = 'fancy-hist.xsl'
+        }
+    }
+}
+
+pmd {
+    toolVersion = '6.46.0'
+    ignoreFailures = false
+    ruleSetFiles = files('config/pmd/ruleSet.xml')
+    ruleSets = []
+}
+tasks.withType(Pmd) {
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+checkstyle {
+    // 9.3 is the latest version that supports Java 8.
+    toolVersion '9.3'
+    ignoreFailures = false
+    configFile = file('config/checkstyle/checkstyle.xml')
+    configProperties = [
+        'checkstyle.header.file': file('config/checkstyle/java.header'),
+        'checkstyle.suppression.file': file('config/checkstyle/suppression.xml')
+    ]
+}
+tasks.withType(Checkstyle) {
+    reports {
+        xml.required = true
+        html.required = true
+    }
 }
