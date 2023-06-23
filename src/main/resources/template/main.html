@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket VoIP</title>
+</head>
+<body>
+<label for="input-new-voice-channel-name" id="label-create-voice-channel">Create a voice channel</label>
+<input type="text" id="input-new-voice-channel-name" placeholder="Enter a new channel name" />
+<button id="button-create-voice-channel">Create a channel</button>
+<ul id="ul-channels"></ul>
+<div id="div-voice-channel-control-box" hidden>
+    <button id="button-leave-voice-channel">Leave</button>
+</div>
+<h3 id="h3-online-users">Online Users</h3>
+<ul id="ul-online-users"></ul>
+<div hidden id="data-username">{{username}}</div>
+<script>
+    const globalUsername = document.getElementById("data-username").textContent;
+
+    /**
+     * Null means the user is not in any voice channel.
+     */
+    let globalCurrentVoiceChannelName;
+
+    /**
+     * Call /onlineUsers endpoint.
+     * @param onSuccess {function(JSON)} The parameter is the response body in JSON.
+     */
+    function sendAjaxToGetOnlineUsers(onSuccess) {
+        const ajax = new XMLHttpRequest();
+        ajax.open("GET", "/onlineUsers", true);
+        ajax.onload = function() {
+            if (ajax.status === 200) {
+                const body = JSON.parse(ajax.response);
+                onSuccess(body);
+            } else {
+                console.error("Failed to get online users. Status code: " + ajax.status);
+            }
+        }
+        ajax.onerror = function() {
+            console.error("Failed to get online users due to a network error.");
+        }
+        ajax.send();
+    }
+
+    /**
+     * Call /createVoiceChannel endpoint.
+     * @param channelName {String}
+     */
+    function sendAjaxToCreateVoiceChannel(channelName) {
+        const ajax = new XMLHttpRequest();
+        ajax.open("POST", "/createVoiceChannel");
+        ajax.setRequestHeader("Content-Type", "text/plain; charset=UTF-8");
+        ajax.onload = function() {
+            if (ajax.status !== 201) {
+                console.error("Failed to create a voice channel. Status code: " + ajax.status);
+            }
+        }
+        ajax.onerror = function() {
+            console.error("Failed to create a voice channel due to a network error.");
+        }
+        ajax.send(channelName);
+    }
+
+    /**
+     * Call /removeVoiceChannel endpoint.
+     * @param channelName {String}
+     */
+    function sendAjaxToRemoveVoiceChannel(channelName) {
+        const ajax = new XMLHttpRequest();
+        ajax.open("DELETE", "/removeVoiceChannel");
+        ajax.setRequestHeader("Content-Type", "text/plain; charset=utf-8");
+        ajax.onload = function() {
+            if (ajax.status !== 204) {
+                console.error("Failed to remove the voice channel. Status code: " + ajax.status);
+            }
+        }
+        ajax.onerror = function() {
+            console.error("Failed to remove the voice channel due to a network error.");
+        }
+        ajax.send(channelName);
+    }
+
+    /**
+     * Call /joinVoiceChannel endpoint.
+     * @param username {String}
+     * @param channelName {String}
+     */
+    function sendAjaxToJoinVoiceChannel(username, channelName) {
+        const ajax = new XMLHttpRequest();
+        ajax.open("POST", "/joinVoiceChannel");
+        ajax.setRequestHeader("Content-Type", "application/json; charset=utf-8");
+        ajax.onload = function() {
+            if (ajax.status !== 204) {
+                console.error("Failed to join the voice channel. Status code: " + ajax.status);
+            }
+        }
+        ajax.onerror = function() {
+            console.error("Failed to join the voice channel due to a network error.");
+        }
+        const body = JSON.stringify({
+            username: username,
+            channelName: channelName
+        });
+        ajax.send(body);
+    }
+
+    /**
+     * Call /leaveVoiceChannel endpoint.
+     * @param username {String}
+     * @param channelName {String}
+     */
+    function sendAjaxToLeaveVoiceChannel(username, channelName) {
+        const ajax = new XMLHttpRequest();
+        ajax.open("POST", "/leaveVoiceChannel");
+        ajax.setRequestHeader("Content-Type", "application/json; charset=utf-8");
+        ajax.onload = function() {
+            if (ajax.status !== 204) {
+                console.error("Failed to leave the voice channel. Status code: " + ajax.status);
+            }
+        }
+        ajax.onerror = function() {
+            console.error("Failed to leave the voice channel due to a network error.");
+        }
+        const body = JSON.stringify({
+            username: username,
+            channelName: channelName
+        });
+        ajax.send(body);
+    }
+
+    /**
+     * Call /switchVoiceChannel endpoint.
+     * @param username {String}
+     * @param oldChannelName {String}
+     * @param newChannelName {String}
+     */
+    function sendAjaxToSwitchVoiceChannel(username, oldChannelName, newChannelName) {
+        const ajax = new XMLHttpRequest();
+        ajax.open("POST", "/switchVoiceChannel");
+        ajax.setRequestHeader("Content-Type", "application/json; charset=utf-8");
+        ajax.onload = function() {
+            if (ajax.status !== 204) {
+                console.error("Failed to switch the voice channel. Status code: " + ajax.status);
+            }
+        }
+        ajax.onerror = function() {
+            console.error("Failed to switch the voice channel due to a network error.");
+        }
+        const body = JSON.stringify({
+            username: username,
+            oldChannelName: oldChannelName,
+            newChannelName: newChannelName
+        });
+        ajax.send(body);
+    }
+
+    /**
+     * Call /voiceChannels endpoint.
+     * @param onSuccess {function(JSON)} The parameter is the response body in JSON.
+     */
+    function sendAjaxToGetVoiceChannels(onSuccess) {
+        const ajax = new XMLHttpRequest();
+        ajax.open("GET", "/voiceChannels", true);
+        ajax.onload = function() {
+            if (ajax.status === 200) {
+                const body = JSON.parse(ajax.response);
+                onSuccess(body);
+            } else {
+                console.error("Failed to get voice channels. Status code: " + ajax.status);
+            }
+        }
+        ajax.onerror = function() {
+            console.error("Failed to get voice channels due to a network error.");
+        }
+        ajax.send();
+    }
+
+    /**
+     * Create a li that contains HTML elements for a voice channel.
+     * @param channel {JSON}
+     * @return {HTMLLIElement}
+     */
+    function createHtmlElementsForVoiceChannel(channel) {
+        const liChannel = document.createElement("li");
+        liChannel.id = "li-voice-channel-" + channel.name;
+        liChannel.className = "li-voice-channel";
+        const buttonChannelName = document.createElement("button");
+        buttonChannelName.className = "button-voice-channel-name";
+        buttonChannelName.innerText = channel.name;
+        buttonChannelName.onclick = function() {
+            if (globalCurrentVoiceChannelName == null) {
+                sendAjaxToJoinVoiceChannel(globalUsername, channel.name);
+            } else {
+                sendAjaxToSwitchVoiceChannel(globalUsername, globalCurrentVoiceChannelName, channel.name);
+            }
+        }
+        const buttonRemoveChannel = document.createElement("button");
+        buttonRemoveChannel.className = "button-remove-voice-channel";
+        buttonRemoveChannel.innerText = "x";
+        buttonRemoveChannel.onclick = function() {
+            sendAjaxToRemoveVoiceChannel(channel.name);
+        }
+        const ulUsers = document.createElement("ul");
+        ulUsers.id = "ul-users-" + channel.name;
+        ulUsers.className = "ul-users";
+        channel.users.forEach(function(username) {
+            ulUsers.appendChild(
+                createHtmlElementForUserInVoiceChannel(username)
+            );
+        });
+        liChannel.appendChild(buttonChannelName);
+        liChannel.appendChild(buttonRemoveChannel);
+        liChannel.appendChild(ulUsers);
+        return liChannel;
+    }
+
+    /**
+     * Create a li that contains HTML elements for a user in a voice channel.
+     * @param username {String}
+     * @return {HTMLLIElement}
+     */
+    function createHtmlElementForUserInVoiceChannel(username) {
+        const liUser = document.createElement("li");
+        liUser.id = "li-voice-channel-user-" + username;
+        liUser.className = "li-voice-channel-user";
+        const spanUsername = document.createElement("span");
+        spanUsername.className = "span-voice-channel-username";
+        spanUsername.innerText = username;
+        liUser.appendChild(spanUsername);
+        return liUser;
+    }
+
+    /**
+     * Create a li that contains HTML elements for an online user.
+     * @param username {String}
+     * @return {HTMLLIElement}
+     */
+    function createHtmlElementForOnlineUser(username) {
+        const liUser = document.createElement("li");
+        liUser.id = "li-online-user-" + username;
+        liUser.className = "li-online-user";
+        const spanUsername = document.createElement("span");
+        spanUsername.className = "span-online-username";
+        spanUsername.innerText = username;
+        liUser.appendChild(spanUsername);
+        return liUser;
+    }
+
+    /**
+     * Call the API, remove all children, and repopulate HTML elements.
+     */
+    function refreshVoiceChannels() {
+        sendAjaxToGetVoiceChannels(function (responseBody) {
+            const ulChannels = document.getElementById("ul-channels");
+            ulChannels.innerHTML = '';
+            responseBody.channels.forEach(function(channel) {
+                ulChannels.appendChild(
+                    createHtmlElementsForVoiceChannel(channel)
+                );
+            });
+        });
+    }
+
+    /**
+     * Call the API, remove all children, and repopulate HTML elements.
+     */
+    function refreshOnlineUsers() {
+        sendAjaxToGetOnlineUsers(function (responseBody) {
+            const ulOnlineUsers = document.getElementById("ul-online-users");
+            ulOnlineUsers.innerHTML = '';
+            responseBody.users.forEach(function(username) {
+                ulOnlineUsers.appendChild(
+                    createHtmlElementForOnlineUser(username)
+                );
+            });
+        });
+    }
+
+    /**
+     * Create a new HTML element for a channel and display it.
+     * @param channelName {String}
+     */
+    function addVoiceChannel(channelName) {
+        const ulChannels = document.getElementById("ul-channels");
+        ulChannels.appendChild(
+            createHtmlElementsForVoiceChannel(
+                {
+                    name: channelName,
+                    users: []
+                }
+            )
+        )
+    }
+
+    /**
+     * As is.
+     * @param channelName {String}
+     */
+    function removeVoiceChannel(channelName) {
+        const liChannel = document.getElementById("li-voice-channel-" + channelName);
+        liChannel.remove();
+    }
+
+    const buttonCreateVoiceChannel = document.getElementById("button-create-voice-channel");
+    buttonCreateVoiceChannel.onclick = function() {
+        const channelName = document.getElementById("input-new-voice-channel-name").value;
+        sendAjaxToCreateVoiceChannel(channelName);
+    }
+    const buttonLeaveVoiceChannel = document.getElementById("button-leave-voice-channel");
+    buttonLeaveVoiceChannel.onclick = function() {
+        sendAjaxToLeaveVoiceChannel(globalUsername, globalCurrentVoiceChannelName);
+    }
+    const ws = new WebSocket("ws://" + location.host + "/connect?username=" + encodeURIComponent(globalUsername));
+    ws.addEventListener("message", function(event) {
+        const payload = JSON.parse(event.data);
+        const about = payload.about;
+        if (about === "user is connected to the websocket server") {
+            const ulOnlineUsers = document.getElementById("ul-online-users");
+            ulOnlineUsers.appendChild(
+                createHtmlElementForOnlineUser(payload.username)
+            );
+        } else if (about === "user is disconnected from the websocket server") {
+            const liVoiceChannelUser = document.getElementById("li-voice-channel-user-" + payload.username);
+            liVoiceChannelUser.remove();
+            const liOnlineUser = document.getElementById("li-online-user-" + payload.username);
+            liOnlineUser.remove();
+        } else if (about === "another device is used") {
+            alert("This user is used by another device. We will sign you out from this device.");
+            window.location.href = "http://" + location.host;
+        } else if (about === "voice channel is created") {
+            addVoiceChannel(payload.name);
+            const inputNewVoiceChannelName = document.getElementById("input-new-voice-channel-name");
+            inputNewVoiceChannelName.value = "";
+        } else if (about === "voice channel is removed") {
+            if (payload.name === globalCurrentVoiceChannelName) {
+                globalCurrentVoiceChannelName = null;
+            }
+            removeVoiceChannel(payload.name);
+        } else if (about === "user joined the voice channel") {
+            if (payload.username === globalUsername) {
+                globalCurrentVoiceChannelName = payload.channelName;
+                const divVoiceChannelControlBox = document.getElementById("div-voice-channel-control-box");
+                divVoiceChannelControlBox.hidden = false;
+            }
+            const ulUsers = document.getElementById("ul-users-" + payload.channelName);
+            ulUsers.appendChild(
+                createHtmlElementForUserInVoiceChannel(payload.username)
+            );
+        } else if (about === "user left the voice channel") {
+            if (payload.username === globalUsername) {
+                globalCurrentVoiceChannelName = null;
+                const divVoiceChannelControlBox = document.getElementById("div-voice-channel-control-box");
+                divVoiceChannelControlBox.hidden = true;
+            }
+            const liUser = document.getElementById("li-voice-channel-user-" + payload.username);
+            liUser.remove();
+        } else if (about === "user switched the voice channel") {
+            if (payload.username === globalUsername) {
+                globalCurrentVoiceChannelName = payload.newChannelName;
+            }
+            const liUser = document.getElementById("li-voice-channel-user-" + payload.username);
+            liUser.remove();
+            const ulUsers = document.getElementById("ul-users-" + payload.newChannelName);
+            ulUsers.appendChild(
+                createHtmlElementForUserInVoiceChannel(payload.username)
+            );
+        } else {
+            console.error("We received an unknown message from the WebSocket server. Message: " + event.data);
+        }
+    })
+    refreshOnlineUsers();
+    refreshVoiceChannels();
+</script>
+</body>
+</html>
