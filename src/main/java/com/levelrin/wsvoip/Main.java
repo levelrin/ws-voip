@@ -4,11 +4,14 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
+import com.levelrin.wsvoip.messagelogic.HandleArrayOfFloat32Array;
+import com.levelrin.wsvoip.messagelogic.WsMessageLogic;
 import io.javalin.Javalin;
 import io.javalin.http.ContentType;
 import io.javalin.http.Context;
 import io.javalin.http.staticfiles.Location;
 import io.javalin.websocket.WsContext;
+import io.javalin.websocket.WsMessageContext;
 import io.pebbletemplates.pebble.PebbleEngine;
 import io.pebbletemplates.pebble.template.PebbleTemplate;
 import java.io.StringWriter;
@@ -32,6 +35,8 @@ public final class Main {
         final VoiceChannels voiceChannels = new VoiceChannels();
         final PebbleEngine pebbleEngine = new PebbleEngine.Builder().build();
         final PebbleTemplate mainTemplate = pebbleEngine.getTemplate("template/main.html");
+        final Map<String, WsMessageLogic> messageLogicMap = new HashMap<>();
+        messageLogicMap.put("audio data", new HandleArrayOfFloat32Array());
         final Javalin app = Javalin
             .create(config -> {
                 config.staticFiles.add("/public", Location.CLASSPATH);
@@ -156,7 +161,20 @@ public final class Main {
                 wsConnections.remove(context.getSessionId());
             });
             ws.onMessage(context -> {
-
+                if (wsMessageIsJsonObject(context)) {
+                    final JsonObject messageJson = new Gson().fromJson(
+                        context.message(),
+                        JsonObject.class
+                    );
+                    if (aboutAttributeExists(messageJson)) {
+                        final String about = messageJson.get("about").getAsString();
+                        for (final Map.Entry<String, WsMessageLogic> logic : messageLogicMap.entrySet()) {
+                            if (logic.getKey().equals(about)) {
+                                logic.getValue().handle(context, messageJson);
+                            }
+                        }
+                    }
+                }
             });
             ws.onError(context -> {
                 try {
@@ -267,6 +285,56 @@ public final class Main {
                 )
             );
             context.result(body.toString());
+        }
+        return valid;
+    }
+
+    /**
+     * Check if the WebSocket message is in valid JsonObject.
+     * @param context It has the message.
+     * @return True if the message is in valid JSON.
+     */
+    private static boolean wsMessageIsJsonObject(final WsMessageContext context) {
+        boolean valid = true;
+        try {
+            final JsonElement jsonElement = new Gson().fromJson(context.message(), JsonElement.class);
+            if (!jsonElement.isJsonObject()) {
+                valid = false;
+            }
+        } catch (final JsonSyntaxException | NullPointerException exception) {
+            valid = false;
+        }
+        if (!valid) {
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                    String.format(
+                        "WebSocket server received non-JSON message: %s",
+                        context.message()
+                    )
+                );
+            }
+        }
+        return valid;
+    }
+
+    /**
+     * Check if the JSON object has the attribute 'about'.
+     * @param json As is.
+     * @return True if it has the attribute 'about'.
+     */
+    private static boolean aboutAttributeExists(final JsonObject json) {
+        boolean valid = false;
+        if (json.has("about")) {
+            valid = true;
+        } else {
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                    String.format(
+                        "We expect JSON message to have 'about' attribute, but it does not exist. JSON: %s",
+                        json
+                    )
+                );
+            }
         }
         return valid;
     }

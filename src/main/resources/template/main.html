@@ -23,6 +23,20 @@
      */
     let globalCurrentVoiceChannelName;
 
+    const globalAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    let globalAudioOutputProcessor;
+    globalAudioContext.audioWorklet.addModule("audioOutputProcess.js").then(
+        function() {
+            globalAudioOutputProcessor = new AudioWorkletNode(globalAudioContext, "audioOutputProcess");
+            globalAudioOutputProcessor.connect(globalAudioContext.destination);
+        },
+        function (rejectedReason) {
+            console.error(rejectedReason);
+        }
+    );
+
+    let globalAudioInputProcessor;
+
     /**
      * Call /onlineUsers endpoint.
      * @param onSuccess {function(JSON)} The parameter is the response body in JSON.
@@ -343,6 +357,37 @@
                 globalCurrentVoiceChannelName = payload.channelName;
                 const divVoiceChannelControlBox = document.getElementById("div-voice-channel-control-box");
                 divVoiceChannelControlBox.hidden = false;
+                if (globalAudioInputProcessor == null && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({audio: true}).then(function (stream) {
+                        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        const audioSource = audioContext.createMediaStreamSource(stream);
+                        audioContext.audioWorklet.addModule("audioInputProcess.js").then(
+                            function() {
+                                globalAudioInputProcessor = new AudioWorkletNode(audioContext, "audioInputProcess");
+                                globalAudioInputProcessor.port.onmessage = function (event) {
+                                    ws.send(
+                                        JSON.stringify({
+                                            about: "audio data",
+                                            dataType: "array of Float32Array",
+                                            data: event.data
+                                        })
+                                    );
+                                }
+                                // We need to activate here even though we activate it below too
+                                // because the below activation might be called before reaching this.
+                                globalAudioInputProcessor.port.postMessage(true);
+                                audioSource.connect(globalAudioInputProcessor);
+                                globalAudioInputProcessor.connect(audioContext.destination);
+                            },
+                            function (rejectedReason) {
+                                console.error(rejectedReason);
+                            }
+                        );
+                    });
+                }
+                if (globalAudioInputProcessor != null) {
+                    globalAudioInputProcessor.port.postMessage(true);
+                }
             }
             const ulUsers = document.getElementById("ul-users-" + payload.channelName);
             ulUsers.appendChild(
@@ -353,6 +398,7 @@
                 globalCurrentVoiceChannelName = null;
                 const divVoiceChannelControlBox = document.getElementById("div-voice-channel-control-box");
                 divVoiceChannelControlBox.hidden = true;
+                globalAudioInputProcessor.port.postMessage(false);
             }
             const liUser = document.getElementById("li-voice-channel-user-" + payload.username);
             liUser.remove();
@@ -366,6 +412,8 @@
             ulUsers.appendChild(
                 createHtmlElementForUserInVoiceChannel(payload.username)
             );
+        } else if (about === "audio data") {
+            globalAudioOutputProcessor.port.postMessage(payload.data);
         } else {
             console.error("We received an unknown message from the WebSocket server. Message: " + event.data);
         }
