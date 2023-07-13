@@ -85,7 +85,9 @@ public final class WsConnections {
     public void broadcast(final JsonObject message) {
         synchronized (this.lock) {
             for (final WsContext context: this.usernameToContext.values()) {
-                context.send(message.toString());
+                if (context.session.isOpen()) {
+                    context.send(message.toString());
+                }
             }
         }
     }
@@ -110,6 +112,17 @@ public final class WsConnections {
             }
             result.add("users", users);
             return result;
+        }
+    }
+
+    /**
+     * Get username by the WebSocket session ID.
+     * @param sessionId As is.
+     * @return As is.
+     */
+    public String username(final String sessionId) {
+        synchronized (this.lock) {
+            return this.sessionToUsername.get(sessionId);
         }
     }
 

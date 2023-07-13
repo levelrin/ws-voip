@@ -183,6 +183,34 @@ public final class VoiceChannels {
     }
 
     /**
+     * User leaves the channel without API call.
+     * For example, this method can be used when the user lost the WebSocket connection.
+     * @param username As is.
+     * @param wsConnections As is.
+     */
+    public void leave(final String username, final WsConnections wsConnections) {
+        boolean success = false;
+        String channelName = "TBD.";
+        synchronized (this.lock) {
+            if (wsConnections.hasUser(username)) {
+                channelName = this.usernameToChannel.get(username);
+                if (this.channelToUsernames.containsKey(channelName)) {
+                    this.usernameToChannel.remove(username);
+                    this.channelToUsernames.get(channelName).remove(username);
+                    success = true;
+                }
+            }
+        }
+        if (success) {
+            final JsonObject message = new JsonObject();
+            message.addProperty("about", "user left the voice channel");
+            message.addProperty("username", username);
+            message.addProperty("channelName", channelName);
+            wsConnections.broadcast(message);
+        }
+    }
+
+    /**
      * User switches the channel.
      * @param username As is.
      * @param oldChannelName As is.

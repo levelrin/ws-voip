@@ -158,7 +158,12 @@ public final class Main {
                 }
             });
             ws.onClose(context -> {
+                voiceChannels.leave(
+                    wsConnections.username(context.getSessionId()),
+                    wsConnections
+                );
                 wsConnections.remove(context.getSessionId());
+                context.closeSession();
             });
             ws.onMessage(context -> {
                 if (wsMessageIsJsonObject(context)) {
