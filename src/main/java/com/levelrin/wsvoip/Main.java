@@ -173,9 +173,16 @@ public final class Main {
                     );
                     if (aboutAttributeExists(messageJson)) {
                         final String about = messageJson.get("about").getAsString();
-                        for (final Map.Entry<String, WsMessageLogic> logic : messageLogicMap.entrySet()) {
-                            if (logic.getKey().equals(about)) {
-                                logic.getValue().handle(context, messageJson);
+                        if (messageLogicMap.containsKey(about)) {
+                            messageLogicMap.get(about).handle(context, messageJson);
+                        } else {
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn(
+                                    String.format(
+                                        "We got a suspicious/unsupported message from the WebSocket. Message: %s",
+                                        context.message()
+                                    )
+                                );
                             }
                         }
                     }
